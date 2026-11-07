@@ -1,0 +1,135 @@
+local FLY, ESP, SPIN, SPEED, NOCLIP, NIGHT, TOGGLE = Enum.KeyCode.X, Enum.KeyCode.C, Enum.KeyCode.V, Enum.KeyCode.F, Enum.KeyCode.CapsLock, Enum.KeyCode.H, Enum.KeyCode.Z
+local Players, RunService, UIS, Workspace, Lighting = game:GetService("Players"), game:GetService("RunService"), game:GetService("UserInputService"), game:GetService("Workspace"), game:GetService("Lighting")
+local LP, cache, fCount, spinAngle = Players.LocalPlayer, {}, 0, 0
+local aimActive, flying, espActive, spinbotActive, speedhackActive, noclipActive, fb = true, false, true, false, false, false
+local flySpeed, rageSpeed, bDist = 90, 150, 2.5
+local char = LP.Character or LP.CharacterAdded:Wait()
+local root, hum = char:WaitForChild("HumanoidRootPart", 5), char:WaitForChild("Humanoid", 5)
+
+local sg = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui", 15)) ; sg.Name = "X" ; sg.ResetOnSpawn = false
+local main = Instance.new("Frame", sg) ; main.Size, main.Position, main.BackgroundColor3, main.Active, main.Draggable = UDim2.new(0, 220, 0, 240), UDim2.new(0.05, 0, 0.3, 0), Color3.fromRGB(25, 25, 25), true, true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
+local title = Instance.new("TextLabel", main) ; title.Size, title.BackgroundColor3, title.Text, title.TextColor3, title.Font, title.TextSize = UDim2.new(1, 0, 0, 25), Color3.fromRGB(40, 40, 40), "  XENO RAGE [Я / Z]", Color3.new(1, 1, 1), 4, 13
+Instance.new("UICorner", title).CornerRadius = UDim.new(0, 8)
+
+local function btn(pos, sx)
+    local b = Instance.new("TextButton", main) ; b.Size, b.Position, b.Font, b.TextSize, b.BorderSizePixel = UDim2.new(0, sx or 200, 0, 24), pos, 4, 12, 0
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5) ; return b
+end
+local bAim, bFly, bSpeed, bSpin, bEsp, bNoclip, bNight = btn(UDim2.new(0, 10, 0, 30)), btn(UDim2.new(0, 10, 0, 60)), btn(UDim2.new(0, 10, 0, 90)), btn(UDim2.new(0, 10, 0, 120)), btn(UDim2.new(0, 10, 0, 150)), btn(UDim2.new(0, 10, 0, 180)), btn(UDim2.new(0, 10, 0, 210))
+
+local function ui()
+    local function c(v) return v and Color3.new(0.2,0.8,0.4) or Color3.new(0.9,0.3,0.3) end
+    bAim.Text, bAim.BackgroundColor3 = "Аимбот [ПКМ]: "..(aimActive and "ВКЛ" or "ВЫКЛ"), c(aimActive)
+    bFly.Text, bFly.BackgroundColor3 = "Полет [Ч/X]: "..(flying and "ВКЛ" or "ВЫКЛ").." ("..flySpeed..")", c(flying)
+    bSpeed.Text, bSpeed.BackgroundColor3 = "Спидхак [А/F]: "..(speedhackActive and "ВКЛ" or "ВЫКЛ").." ("..rageSpeed..")", c(speedhackActive)
+    bSpin.Text, bSpin.BackgroundColor3 = "Крутилка [М/V]: "..(spinbotActive and "ВКЛ" or "ВЫКЛ"), c(spinbotActive)
+    bEsp.Text, bEsp.BackgroundColor3 = "ВХ [С/C]: "..(espActive and "ВКЛ" or "ВЫКЛ"), c(espActive)
+    bNoclip.Text, bNoclip.BackgroundColor3 = "BlinkСтены [Caps]: "..(noclipActive and "СКВОЗЬ" or "ВЫКЛ"), c(noclipActive)
+    bNight.Text, bNight.BackgroundColor3 = "Светлая ночь [H]: "..(fb and "ВКЛ" or "ВЫКЛ"), c(fb)
+end
+ui()
+
+LP.CharacterAdded:Connect(function(nc) char, root, hum = nc, nc:WaitForChild("HumanoidRootPart", 5), nc:WaitForChild("Humanoid", 5) end)
+
+local function isVis(t)
+    if not char or not t then return false end ; local cam = Workspace.CurrentCamera ; if not cam then return false end
+    local p = RaycastParams.new() ; p.FilterType, p.FilterDescendantsInstances = Enum.RaycastFilterType.Exclude, {char, t.Parent}
+    return Workspace:Raycast(cam.CFrame.Position, t.Position - cam.CFrame.Position, p) == nil
+end
+
+RunService.RenderStepped:Connect(function()
+    if aimActive and UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) and root and Workspace.CurrentCamera then
+        local target, short = nil, math.huge
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LP and p.Character and p.Character:FindFirstChild("Head") and p.Character.Humanoid.Health > 0 and p.Team ~= LP.Team then
+                local h = p.Character.Head
+                if isVis(h) then
+                    local pos, vis = Workspace.CurrentCamera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                    if vis and (Vector2.new(pos.X, pos.Y) - UIS:GetMouseLocation()).Magnitude < short then
+                        target, short = h, (Vector2.new(pos.X, pos.Y) - UIS:GetMouseLocation()).Magnitude
+                    end
+                end
+            end
+        end
+        if target then Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, target.Position) end
+    end
+end)
+
+RunService.Stepped:Connect(function() 
+    if char then for _, p in pairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end
+    if noclipActive and root and hum and hum.MoveDirection.Magnitude > 0 then root.CFrame = root.CFrame + (hum.MoveDirection * bDist) end
+end)
+RunService.Heartbeat:Connect(function() 
+    if hum then hum.WalkSpeed = (speedhackActive and not flying) and rageSpeed or 16 end 
+    if spinbotActive and root and not UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        spinAngle = (spinAngle + 45) % 360 ; root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, math.rad(spinAngle), 0)
+    end
+end)
+
+local bv, bg
+RunService.RenderStepped:Connect(function()
+    if flying and root and Workspace.CurrentCamera then
+        local d = Vector3.zero
+        if UIS:IsKeyDown(Enum.KeyCode.W) then d = d + Workspace.CurrentCamera.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then d = d - Workspace.CurrentCamera.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then d = d - Workspace.CurrentCamera.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then d = d + Workspace.CurrentCamera.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then d = d + Vector3.new(0,1,0) end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then d = d - Vector3.new(0,1,0) end
+        bv, bg = bv or Instance.new("BodyVelocity", root), bg or Instance.new("BodyGyro", root)
+        bv.MaxForce, bg.MaxTorque, bg.CFrame = Vector3.one * 1e5, Vector3.one * 1e5, Workspace.CurrentCamera.CFrame
+        bv.Velocity = d.Unit * flySpeed
+        if d.Magnitude == 0 then bv.Velocity = Vector3.zero end
+        if noclipActive and d.Magnitude > 0 then root.CFrame = root.CFrame + (d.Unit * bDist) end
+    else if bv then bv:Destroy() ; bv = nil end ; if bg then bg:Destroy() ; bg = nil end end
+end)
+
+local function rem(p) if cache[p] then cache[p].hl:Destroy() ; cache[p].bb:Destroy() ; cache[p] = nil end end
+RunService.Heartbeat:Connect(function()
+    fCount = (fCount + 1) % 3 ; if fCount ~= 0 then return end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LP then
+            local c = p.Character
+            if c and c.Parent then
+                local h, eh = c:FindFirstChild("Head"), c:FindFirstChild("Humanoid")
+                if h and eh and eh.Health > 0 then
+                    if not cache[p] or cache[p].c ~= c then
+                        rem(p)
+                        local hl, bb = Instance.new("Highlight", c), Instance.new("BillboardGui", h)
+                        hl.FillColor, hl.OutlineColor, bb.AlwaysOnTop, bb.Size, bb.StudsOffset = Color3.new(1,0,0), Color3.new(1,1,1), true, UDim2.new(0,120,0,40), Vector3.new(0,1.8,0)
+                        local l = Instance.new("TextLabel", bb) ; l.Size, l.BackgroundTransparency, l.TextStrokeTransparency, l.Font, l.TextSize = UDim2.new(1,0,1,0), 1, 0, 4, 8
+                        cache[p] = {hl = hl, bb = bb, l = l, c = c}
+                    end
+                    if espActive then
+                        cache[p].hl.Enabled, cache[p].bb.Enabled = true, true
+                        cache[p].l.Text = string.format("%s\nHP: %d\n[%s]", p.Name, eh.Health, c:FindFirstChildOfClass("Tool") and c:FindFirstChildOfClass("Tool").Name or "[Кулаки]")
+                        cache[p].l.TextColor3 = eh.Health > 50 and Color3.new(0.2,1,0.5) or Color3.new(1,0.3,0.3)
+                    else cache[p].hl.Enabled, cache[p].bb.Enabled = false, false end
+                else rem(p) end
+            else rem(p) end
+        end
+    end
+end)
+Players.PlayerRemoving:Connect(rem)
+
+local function tAim() aimActive = not aimActive ; ui() end
+local function tFly() flying = not flying ; speedhackActive = false ; ui() end
+local function tSpeed() speedhackActive = not speedhackActive ; flying = false ; ui() end
+local function tSpin() spinbotActive = not spinbotActive ; ui() end
+local function tEsp() espActive = not espActive ; ui() end
+local function tNoclip() noclipActive = not noclipActive ; ui() end
+local function tNight() fb = not fb ; ui() ; Lighting.Ambient, Lighting.OutdoorAmbient, Lighting.ClockTime = fb and Color3.new(1,1,1) or Color3.fromRGB(130,130,130), fb and Color3.new(1,1,1) or Color3.fromRGB(130,130,130), fb and 14 or 12 ; if Lighting:FindFirstChildOfClass("Atmosphere") then Lighting:FindFirstChildOfClass("Atmosphere").Density = fb and 0 or 0.3 end end
+
+bAim.MouseButton1Click:Connect(tAim) ; bFly.MouseButton1Click:Connect(tFly) ; bSpeed.MouseButton1Click:Connect(tSpeed) ; bSpin.MouseButton1Click:Connect(tSpin) ; bEsp.MouseButton1Click:Connect(tEsp) ; bNoclip.MouseButton1Click:Connect(tNoclip) ; bNight.MouseButton1Click:Connect(tNight)
+
+UIS.InputBegan:Connect(function(i, g)
+    if g then return end
+    if i.KeyCode == FLY then tFly() end ; if i.KeyCode == SPEED then tSpeed() end ; if i.KeyCode == SPIN then tSpin() end
+    if i.KeyCode == ESP then tEsp() end ; if i.KeyCode == NOCLIP then tNoclip() end ; if i.KeyCode == NIGHT then tNight() end
+    if i.KeyCode == TOGGLE then main.Visible = not main.Visible end
+    if i.KeyCode == Enum.KeyCode.Up then flySpeed = flySpeed + 10 ; ui() end
+    if i.KeyCode == Enum.KeyCode.Down then flySpeed = math.max(10, flySpeed - 10) ; ui() end
+    if i.KeyCode == Enum.KeyCode.Right then rageSpeed = rageSpeed + 15 ; ui() end
+    if i.KeyCode == Enum.KeyCode.Left then rageSpeed = math.max(16, rageSpeed - 15) ; ui() end
+end)
